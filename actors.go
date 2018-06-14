@@ -17,7 +17,8 @@ type Actors struct {
 	listener    Listener
 }
 
-type props struct {
+// Props - свойства модели акторов
+type Props struct {
 	idGeneratorCreator IDGeneratorCreator
 	rootID             string
 	rootIDGenerator    IDGenerator
@@ -28,7 +29,7 @@ func defaultIDGeneratorCreator(parentID ActorID) IDGenerator {
 }
 
 // New создаёт новый экземпляр Actors
-func New(props props) Actors {
+func New(props Props) Actors {
 	rootID := props.rootID
 	var idGeneratorCreator IDGeneratorCreator
 	if props.idGeneratorCreator != nil {
