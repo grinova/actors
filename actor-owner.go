@@ -10,15 +10,19 @@ type actorOwner struct {
 }
 
 func (ao *actorOwner) init() {
-	ao.actor.OnInit(ao.id, ao.sender.send, ao.spawn, ao.exit)
+	if ao.actor.OnInit != nil {
+		ao.actor.OnInit(ao.id, ao.sender.send, ao.spawn, ao.exit)
+	}
 }
 
 func (ao *actorOwner) handle(message Message) {
-	ao.actor.OnMessage(message, ao.sender.send, ao.spawn, ao.exit)
+	if ao.actor.OnMessage != nil {
+		ao.actor.OnMessage(message, ao.sender.send, ao.spawn, ao.exit)
+	}
 }
 
-func (ao *actorOwner) spawn(actor Actor) ActorID {
-	return ao.spawner.spawn(ao.id, actor)
+func (ao *actorOwner) spawn(creator ActorCreator) (ActorID, bool) {
+	return ao.spawner.spawn(ao.id, creator)
 }
 
 func (ao *actorOwner) exit(message Message) {

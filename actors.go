@@ -5,8 +5,8 @@ type IDGeneratorCreator func(parentID ActorID) IDGenerator
 
 // Listener - интерфейс обратных вызовов соответствующих событий
 type Listener interface {
-	onMessage(address ActorID, message Message)
-	onSpawn(id ActorID, actor Actor)
+	OnMessage(address ActorID, message Message)
+	OnSpawn(id ActorID, actor Actor)
 }
 
 // Actors - моедль акторов
@@ -19,37 +19,41 @@ type Actors struct {
 
 // Props - свойства модели акторов
 type Props struct {
-	idGeneratorCreator IDGeneratorCreator
-	rootID             string
-	rootIDGenerator    IDGenerator
+	IDGeneratorCreator IDGeneratorCreator
+	RootID             string
+	RootIDGenerator    IDGenerator
 }
 
 func defaultIDGeneratorCreator(parentID ActorID) IDGenerator {
-	return &NumericIDGenerator{}
+	return &NumericIDGenerator{prefix: parentID}
 }
 
 // New создаёт новый экземпляр Actors
 func New(props Props) Actors {
-	rootID := props.rootID
+	rootID := props.RootID
 	var idGeneratorCreator IDGeneratorCreator
-	if props.idGeneratorCreator != nil {
-		idGeneratorCreator = props.idGeneratorCreator
+	if props.IDGeneratorCreator != nil {
+		idGeneratorCreator = props.IDGeneratorCreator
 	} else {
 		idGeneratorCreator = defaultIDGeneratorCreator
 	}
 	var rootIDGenerator IDGenerator
-	if props.rootIDGenerator != nil {
-		rootIDGenerator = props.rootIDGenerator
+	if props.RootIDGenerator != nil {
+		rootIDGenerator = props.RootIDGenerator
 	} else {
 		rootIDGenerator = idGeneratorCreator(rootID)
 	}
 	router := newMessageRouter()
+	actors := Actors{rootID: rootID, router: router}
 	rootSpawner := spawner{
 		idGenerator:        rootIDGenerator,
 		idGeneratorCreator: idGeneratorCreator,
 		registrator:        &router,
+		sender:             &actors,
+		destroyer:          &actors,
+		onSpawn:            actors.onSpawn,
 	}
-	actors := Actors{rootID: rootID, router: router, rootSpawner: rootSpawner}
+	actors.rootSpawner = rootSpawner
 	rootSpawner.destroyer = &actors
 	rootSpawner.sender = &actors
 	return actors
@@ -59,7 +63,7 @@ func New(props Props) Actors {
 func (a *Actors) Send(address ActorID, message Message) {
 	if a.router.route(address, message) {
 		if a.listener != nil {
-			a.listener.onMessage(address, message)
+			a.listener.OnMessage(address, message)
 		}
 	}
 }
@@ -70,10 +74,8 @@ func (a *Actors) SetListener(listener Listener) {
 }
 
 // Spawn пораджает новый актор
-func (a *Actors) Spawn(actor Actor) ActorID {
-	id := a.rootSpawner.spawn(a.rootID, actor)
-	a.onSpawn(id, actor)
-	return id
+func (a *Actors) Spawn(creator ActorCreator) (ActorID, bool) {
+	return a.rootSpawner.spawn(a.rootID, creator)
 }
 
 func (a *Actors) destroy(id ActorID) {
@@ -82,7 +84,7 @@ func (a *Actors) destroy(id ActorID) {
 
 func (a *Actors) onSpawn(id ActorID, actor Actor) {
 	if a.listener != nil {
-		a.listener.onSpawn(id, actor)
+		a.listener.OnSpawn(id, actor)
 	}
 }
 

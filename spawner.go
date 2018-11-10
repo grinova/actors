@@ -1,8 +1,7 @@
 package actors
 
-type spawnListener interface {
-	onSpawn(id ActorID, actor Actor)
-}
+// ActorCreator - функция создания актора
+type ActorCreator func(id ActorID) (Actor, bool)
 
 type spawner struct {
 	idGenerator        IDGenerator
@@ -10,19 +9,24 @@ type spawner struct {
 	registrator        actorRegistrator
 	destroyer          destroyer
 	sender             sender
-	listener           spawnListener
+	onSpawn            func(id ActorID, actor Actor)
 }
 
-func (s *spawner) spawn(parentID ActorID, actor Actor) ActorID {
+func (s *spawner) spawn(parentID ActorID, creator ActorCreator) (ActorID, bool) {
 	id := s.idGenerator.NewID()
+	actor, ok := creator(id)
+	if !ok {
+		return "", false
+	}
 	spawner := spawner{
 		idGenerator:        s.idGeneratorCreator(id),
 		idGeneratorCreator: s.idGeneratorCreator,
 		registrator:        s.registrator,
 		destroyer:          s.destroyer,
 		sender:             s.sender,
-		listener:           s.listener,
+		onSpawn:            s.onSpawn,
 	}
+
 	owner := actorOwner{
 		parentID:  parentID,
 		id:        id,
@@ -33,6 +37,6 @@ func (s *spawner) spawn(parentID ActorID, actor Actor) ActorID {
 	}
 	s.registrator.register(id, &owner)
 	owner.init()
-	s.listener.onSpawn(id, actor)
-	return id
+	s.onSpawn(id, actor)
+	return id, true
 }
