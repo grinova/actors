@@ -16,7 +16,7 @@ type Send = func(id ActorID, message Message)
 type Exit = func(message Message)
 
 // Actor - актор
-type Actor struct {
-	OnInit    func(selfID ActorID, send Send, spawn Spawn, exit Exit)
-	OnMessage func(message Message, send Send, spawn Spawn, exit Exit)
+type Actor interface {
+	OnInit(selfID ActorID, send Send, spawn Spawn, exit Exit)
+	OnMessage(message Message, send Send, spawn Spawn, exit Exit)
 }

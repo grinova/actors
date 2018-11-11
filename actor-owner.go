@@ -10,13 +10,13 @@ type actorOwner struct {
 }
 
 func (ao *actorOwner) init() {
-	if ao.actor.OnInit != nil {
+	if ao.actor != nil {
 		ao.actor.OnInit(ao.id, ao.sender.send, ao.spawn, ao.exit)
 	}
 }
 
 func (ao *actorOwner) handle(message Message) {
-	if ao.actor.OnMessage != nil {
+	if ao.actor != nil {
 		ao.actor.OnMessage(message, ao.sender.send, ao.spawn, ao.exit)
 	}
 }
